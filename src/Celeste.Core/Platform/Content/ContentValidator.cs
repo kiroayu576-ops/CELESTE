@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Celeste.Core.Platform.Audio;
 using Celeste.Core.Platform.Filesystem;
 using Celeste.Core.Platform.Paths;
 
@@ -239,6 +240,19 @@ public sealed class ContentValidator
     private void ValidateAudioDirectory(ContentValidationReport report, string contentPath)
     {
         var fmodPath = Path.Combine(contentPath, "FMOD");
+        if (AudioRuntimePolicy.ShouldForceSilentAudio())
+        {
+            report.Issues.Add(new ContentValidationIssue(
+                IssueSeverity.Warning,
+                "AUDIO_DISABLED_BY_POLICY_ANDROID",
+                "Content/FMOD",
+                fmodPath,
+                "Audio FMOD desativado por politica Android. O jogo executara em modo silencioso.",
+                $"Para testar audio FMOD novamente, ative o switch '{AudioRuntimePolicy.EnableFmodOnAndroidSwitch}' em true."
+            ));
+            return;
+        }
+
         if (!_fileSystem.DirectoryExists(fmodPath))
         {
             report.Issues.Add(new ContentValidationIssue(

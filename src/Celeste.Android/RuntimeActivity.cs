@@ -9,6 +9,7 @@ using Celeste.Android.Platform.Fullscreen;
 using Celeste.Android.Platform.Input;
 using Celeste.Android.Platform.Logging;
 using Celeste.Android.Platform.Paths;
+using Celeste.Core.Platform.Audio;
 using Celeste.Core.Platform.Interop;
 using Celeste.Core.Platform.Logging;
 using Celeste.Core.Platform.Services;
@@ -42,6 +43,14 @@ public class RuntimeActivity : AndroidGameActivity
         _logger = new AndroidDualLogger(paths.LogsPath);
         _fullscreen = new ImmersiveFullscreenController(_logger);
 
+        var fmodEnabled = AudioRuntimePolicy.IsFmodEnabledOnAndroid();
+        _logger.Log(
+            fmodEnabled ? LogLevel.Info : LogLevel.Warn,
+            "AUDIO",
+            fmodEnabled
+                ? "Android override active: FMOD enabled for test"
+                : "Android policy active: FMOD disabled; runtime will run in silent mode");
+
         _logger.Log(LogLevel.Info, "APP", "RUNTIME_SESSION_START");
         _logger.Log(LogLevel.Info, "PATHS", $"BaseDataPath={paths.BaseDataPath}");
         _logger.Log(LogLevel.Info, "PATHS", $"ContentPath={paths.ContentPath}");
@@ -67,7 +76,7 @@ public class RuntimeActivity : AndroidGameActivity
 
         var fileSystem = new AndroidFileSystem(paths, _logger);
         var input = new AndroidInputProvider(_logger);
-        var audio = new FmodAudioBackend(_logger);
+        var audio = new NullAudioBackend(_logger);
         _services = new PlatformServices(_logger, paths, fileSystem, input, audio);
 
         global::Celeste.Settings.Initialize();

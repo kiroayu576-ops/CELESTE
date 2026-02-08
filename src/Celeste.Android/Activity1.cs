@@ -13,6 +13,7 @@ using Celeste.Android.Platform.Input;
 using Celeste.Android.Platform.Lifecycle;
 using Celeste.Android.Platform.Logging;
 using Celeste.Android.Platform.Paths;
+using Celeste.Core.Platform.Audio;
 using Celeste.Core.Platform.Logging;
 using Celeste.Core.Platform.Services;
 using Microsoft.Xna.Framework;
@@ -50,6 +51,14 @@ public class Activity1 : AndroidGameActivity
         _fullscreen = new ImmersiveFullscreenController(_logger);
         RegisterGlobalExceptionHandlers(_logger);
 
+        var fmodEnabled = AudioRuntimePolicy.IsFmodEnabledOnAndroid();
+        _logger.Log(
+            fmodEnabled ? LogLevel.Info : LogLevel.Warn,
+            "AUDIO",
+            fmodEnabled
+                ? "Android override active: FMOD enabled for test"
+                : "Android policy active: FMOD disabled; running in silent mode for stability");
+
         _logger.Log(LogLevel.Info, "APP", "SESSION_START");
         _logger.Log(LogLevel.Info, "DEVICE", $"Manufacturer={Build.Manufacturer}; Model={Build.Model}; ApiLevel={(int)Build.VERSION.SdkInt}");
         _logger.Log(LogLevel.Info, "RUNTIME", $"SupportedAbis={string.Join(",", Build.SupportedAbis ?? Array.Empty<string>())}");
@@ -61,7 +70,7 @@ public class Activity1 : AndroidGameActivity
 
         var fileSystem = new AndroidFileSystem(paths, _logger);
         var input = new AndroidInputProvider(_logger);
-        var audio = new FmodAudioBackend(_logger);
+        var audio = new NullAudioBackend(_logger);
         _services = new PlatformServices(_logger, paths, fileSystem, input, audio);
         _activeAbi = GetActiveAbi();
 

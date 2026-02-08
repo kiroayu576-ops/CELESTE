@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Celeste.Core.Platform.Audio;
 using Celeste.Core.Platform.Interop;
 using FMOD;
 using FMOD.Studio;
@@ -198,6 +199,13 @@ public static class Audio
 	{
 		FallbackSilentMode = false;
 		LastInitError = "";
+		if (AudioRuntimePolicy.ShouldForceSilentAudio())
+		{
+			CelestePathBridge.LogWarn("FMOD", $"Android silent-audio policy is active. Skipping FMOD init. Set '{AudioRuntimePolicy.EnableFmodOnAndroidSwitch}' switch to true to test FMOD.");
+			ActivateFallback("AUDIO_DISABLED_BY_POLICY_ANDROID");
+			return;
+		}
+
 		CelestePathBridge.LogInfo("FMOD", "Initializing FMOD audio system");
 		FMOD.Studio.INITFLAGS studioFlags = FMOD.Studio.INITFLAGS.NORMAL;
 		if (Settings.Instance.LaunchWithFMODLiveUpdate)
@@ -248,7 +256,15 @@ public static class Audio
 		FallbackSilentMode = true;
 		ready = false;
 		LastInitError = reason;
-		CelestePathBridge.LogError("FMOD", $"AUDIO_FALLBACK_ACTIVE: {reason}");
+		if (string.Equals(reason, "AUDIO_DISABLED_BY_POLICY_ANDROID", StringComparison.Ordinal))
+		{
+			CelestePathBridge.LogWarn("FMOD", $"AUDIO_FALLBACK_ACTIVE: {reason}");
+		}
+		else
+		{
+			CelestePathBridge.LogError("FMOD", $"AUDIO_FALLBACK_ACTIVE: {reason}");
+		}
+
 		if (exception != null)
 		{
 			CelestePathBridge.LogError("FMOD", exception.ToString());

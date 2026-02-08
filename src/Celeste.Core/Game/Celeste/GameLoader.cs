@@ -365,14 +365,22 @@ public class GameLoader : Scene
 		try
 		{
 			Audio.Init();
-			Audio.Banks.Master = Audio.Banks.Load("Master Bank", loadStrings: true);
-			Audio.Banks.Music = Audio.Banks.Load("music", loadStrings: false);
-			Audio.Banks.Sfxs = Audio.Banks.Load("sfx", loadStrings: false);
-			Audio.Banks.UI = Audio.Banks.Load("ui", loadStrings: false);
-			Audio.Banks.DlcMusic = Audio.Banks.Load("dlc_music", loadStrings: false);
-			Audio.Banks.DlcSfxs = Audio.Banks.Load("dlc_sfx", loadStrings: false);
-			Settings.Instance.ApplyVolumes();
-			audioLoaded = true;
+			if (Audio.FallbackSilentMode)
+			{
+				audioLoaded = false;
+				CelestePathBridge.LogWarn("FMOD", "Audio initialization entered fallback mode before bank load. Continuing silently.");
+			}
+			else
+			{
+				Audio.Banks.Master = Audio.Banks.Load("Master Bank", loadStrings: true);
+				Audio.Banks.Music = Audio.Banks.Load("music", loadStrings: false);
+				Audio.Banks.Sfxs = Audio.Banks.Load("sfx", loadStrings: false);
+				Audio.Banks.UI = Audio.Banks.Load("ui", loadStrings: false);
+				Audio.Banks.DlcMusic = Audio.Banks.Load("dlc_music", loadStrings: false);
+				Audio.Banks.DlcSfxs = Audio.Banks.Load("dlc_sfx", loadStrings: false);
+				Settings.Instance.ApplyVolumes();
+				audioLoaded = true;
+			}
 		}
 		catch (Exception ex)
 		{
