@@ -1,0 +1,91 @@
+name: Android Release Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  core-smoke-test:
+    name: Core Smoke Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Build Celeste.Core
+        run: dotnet build "src/Celeste.Core/Celeste.Core.csproj" -c Release
+
+  build-android-apk:
+    name: Build Android APK
+    runs-on: windows-latest
+    needs: core-smoke-test
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      - name: Restore solution
+        run: dotnet restore "Celeste.AndroidPort.sln"
+
+      - name: Validate ABI configuration
+        shell: pwsh
+        run: |
+          [xml]$csproj = Get-Content "${{ github.workspace }}\src\Celeste.Android\Celeste.Android.csproj"
+          $runtimeIds = $csproj.Project.PropertyGroup.RuntimeIdentifiers
+          if (-not $runtimeIds) {
+            throw "RuntimeIdentifiers not configured"
+          }
+
+          if ($runtimeIds -notmatch "android-arm" -or $runtimeIds -notmatch "android-arm64") {
+            throw "Expected RuntimeIdentifiers android-arm and android-arm64, got: $runtimeIds"
+          }
+
+          Write-Host "RuntimeIdentifiers validated: $runtimeIds"
+
+      - name: Build unsigned APK
+        shell: pwsh
+        run: |
+          dotnet publish "src/Celeste.Android/Celeste.Android.csproj" `
+            -c Release `
+            -f net9.0-android `
+            -p:AndroidPackageFormat=apk `
+            -p:AndroidKeyStore=false
+
+      - name: Collect artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "${{ github.workspace }}\artifacts" -Force | Out-Null
+          $apks = Get-ChildItem -Path "${{ github.workspace }}\src\Celeste.Android\bin\Release\net9.0-android" -Recurse -Filter *.apk
+          if (-not $apks -or $apks.Count -eq 0) {
+            throw "No APK artifact found after publish"
+          }
+
+          $apks | Copy-Item -Destination "${{ github.workspace }}\artifacts" -Force
+
+      - name: Upload Android APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: ${{ github.workspace }}\artifacts\*.apk

@@ -1,0 +1,13 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# IDE/cache
+.vs/
+.vscode/
+
+# Local artifacts
+*.heapsnapshot
+
+# Ignorar arquivos de texto
+*.txt
